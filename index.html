@@ -1,153 +1,93 @@
+// index.html
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>单词消消乐配对游戏</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-        }
-        .game-container {
-            display: flex;
-            justify-content: space-between;
-        }
-        .column {
-            width: 45%;
-            min-height: 500px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-        }
-        .word-item {
-            padding: 12px;
-            margin: 8px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-        .word-item:hover {
-            background-color: #e0e0e0;
-        }
-        .selected {
-            background-color: #a0d8ef !important;
-        }
-        .stats {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 18px;
-        }
-        .completed {
-            background-color: #90EE90 !important;
-            opacity: 0.5;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini Crossword Puzzle</n></title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; padding: 20px; }
+    #board { display: grid; grid-template-columns: repeat(4, 100px); gap: 10px; margin-top: 20px; }
+    .cell { width: 100px; height: 100px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; }
+    .matched { background: #8bc34a; color: #fff; cursor: default; }
+  </style>
 </head>
 <body>
-    <div class="stats">
-        <span>错误次数: <span id="errors">0</span></span>
-        <span style="margin-left: 20px;">耗时: <span id="timer">0</span>秒</span>
-    </div>
-    <div class="game-container">
-        <div class="column" id="english-column"></div>
-        <div class="column" id="chinese-column"></div>
-    </div>
-
-    <script>
-        // ==================== 在这里修改单词列表 ====================
-        const wordPairs = [
-            ["Hello", "你好"],
-            ["Goodbye", "再见"],
-            ["Computer", "电脑"],
-            ["Book", "书"],
-            ["Teacher", "老师"],
-            // 在此继续添加更多单词对...
-        ];
-        // =========================================================
-
-        let selectedItems = { english: null, chinese: null };
-        let errorCount = 0;
-        let startTime = Date.now();
-        let timerInterval;
-
-        function initGame() {
-            // 随机排序单词（保持配对关系）
-            const shuffled = wordPairs.sort(() => Math.random() - 0.5);
-            
-            // 创建英文列
-            shuffled.forEach(pair => {
-                const div = document.createElement('div');
-                div.className = 'word-item';
-                div.textContent = pair[0];
-                div.dataset.pair = pair[1];
-                div.onclick = () => selectItem('english', div);
-                document.getElementById('english-column').appendChild(div);
-            });
-
-            // 创建中文列（完全随机）
-            shuffled.map(pair => pair[1])
-                .sort(() => Math.random() - 0.5)
-                .forEach(text => {
-                    const div = document.createElement('div');
-                    div.className = 'word-item';
-                    div.textContent = text;
-                    div.onclick = () => selectItem('chinese', div);
-                    document.getElementById('chinese-column').appendChild(div);
-                });
-
-            // 启动计时器
-            timerInterval = setInterval(() => {
-                document.getElementById('timer').textContent = 
-                    Math.floor((Date.now() - startTime) / 1000);
-            }, 1000);
-        }
-
-        function selectItem(type, element) {
-            if (element.classList.contains('completed')) return;
-
-            // 清除已选样式
-            document.querySelectorAll('.selected').forEach(item => {
-                item.classList.remove('selected');
-            });
-
-            // 设置当前选中
-            element.classList.add('selected');
-            selectedItems[type] = element;
-
-            // 检查是否配对
-            if (selectedItems.english && selectedItems.chinese) {
-                if (selectedItems.english.dataset.pair === selectedItems.chinese.textContent) {
-                    // 配对成功
-                    selectedItems.english.classList.add('completed');
-                    selectedItems.chinese.classList.add('completed');
-                    checkCompletion();
-                } else {
-                    // 配对失败
-                    errorCount++;
-                    document.getElementById('errors').textContent = errorCount;
-                    setTimeout(() => {
-                        selectedItems.english.classList.remove('selected');
-                        selectedItems.chinese.classList.remove('selected');
-                    }, 500);
-                }
-                selectedItems = { english: null, chinese: null };
-            }
-        }
-
-        function checkCompletion() {
-            const remaining = document.querySelectorAll('.word-item:not(.completed)');
-            if (remaining.length === 0) {
-                clearInterval(timerInterval);
-                alert(`游戏完成！\n总耗时: ${document.getElementById('timer').textContent}秒\n错误次数: ${errorCount}`);
-            }
-        }
-
-        // 开始游戏
-        initGame();
-    </script>
+  迷你填字游戏<h1>Mini Crossword Puzzle</h1>
+  <div id="board"></div>
+  <script type="module" src="main.js" defer></script>
 </body>
 </html>
+
+// state.js
+export const initialState = {
+  board: [],      // array of letters
+  flipped: [],    // indices of flipped cards
+  matched: []     // indices of matched cards
+};
+
+export function reducer(state   状态, action   行动) {
+  switch (action.type) {
+    case 'INIT':
+      return { ...state, board: action.payload, flipped   翻: [], matched: [] };
+    case 'FLIP':
+      if (state.flipped.includes(action.index) || state   状态.matched.includes(action   行动.index)) return state   状态;
+      return { ...state, flipped: [...state   状态.flipped   翻, action   行动.index] };
+    case 'CHECK':
+      const [i, j] = state.flipped;
+      if (state.board[i] === state.board[j]) {
+        return { ...state, matched: [...state   状态.matched, i, j], flipped   翻: [] };
+      } else {
+        return { ...state, flipped: [] };
+      }
+    default:
+      return state   状态;
+  }
+}
+
+// ui.js
+export function renderBoard(state   状态, dispatch   调度) {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  state.board   董事会.forEach((letter, idx) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (state.matched.includes(idx)) cell.classList.add('matched');
+    cell.textContent = state   状态.flipped   翻.includes(idx) || state.matched.includes(idx) ? letter : '';
+    cell.dataset.index = idx;
+    cell.addEventListener('click', () => dispatch   调度({ type: 'FLIP'   “翻转”, index: idx }));
+    boardEl.appendChild(cell);
+  });
+}
+
+// game.js
+export function generateBoard() {
+  const letters = ['A','B','C'   “C”,'D','A','B','C','D'];
+  // shuffle   / /洗牌
+  for (let i = letters.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [letters[i], letters[j]] = [letters   信[j], letters   信[i]];
+  }
+  return letters   信;
+}
+
+// main.js
+import { initialState, reducer } from './state.js';
+import { renderBoard } from './ui.js';
+import { generateBoard } from './game.js';
+
+let state = initialState;
+
+function dispatch(action) {
+  state = reducer(state, action);
+  renderBoard(state, dispatch);
+  if (action.type === 'FLIP' && state.flipped.length === 2) {
+    setTimeout(() => dispatch({ type: 'CHECK' }), 1000);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const board = generateBoard();
+  dispatch({ type: 'INIT', payload: board });
+});
+
