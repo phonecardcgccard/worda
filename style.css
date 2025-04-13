@@ -1,0 +1,87 @@
+:root {
+    --primary-color: #2563eb;
+    --secondary-color: #3b82f6;
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --background-color: #f3f4f6;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--background-color);
+    min-height: 100vh;
+}
+
+.game-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.word-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    position: relative;
+}
+
+.word-card {
+    background: white;
+    padding: 1rem;
+    margin: 0.5rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.word-card:hover {
+    transform: translateY(-2px);
+}
+
+.word-card.selected {
+    background: var(--primary-color);
+    color: white;
+}
+
+.word-card.matched {
+    background: var(--success-color);
+    color: white;
+}
+
+.word-card.error {
+    animation: shake 0.5s;
+}
+
+.combo-display {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.combo-display.active {
+    opacity: 1;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@media (max-width: 768px) {
+    .word-columns {
+        grid-template-columns: 1fr;
+    }
+}
