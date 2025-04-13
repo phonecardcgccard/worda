@@ -1,44 +1,215 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>My app</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta charset="utf-8">
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English-Chinese Word Matching Game | Fun Language Learning</title>
+    <meta name="description" content="Improve your English and Chinese vocabulary with our interactive word matching game. Perfect for language learners of all levels. Play now for free!">
+    <meta name="keywords" content="English Chinese words, language learning game, vocabulary practice, word matching game, bilingual education">
     <style>
-      body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-        height: 100dvh;
-        font-family: "Arial", sans-serif;
-        text-align: center;
-      }
-      .arrow {
-        position: absolute;
-        bottom: 32px;
-        left: 0px;
-        width: 100px;
-        transform: rotate(30deg);
-      }
-      h1 {
-        font-size: 50px;
-      }
-      h1 span {
-        color: #acacac;
-        font-size: 32px;
-      }
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #3b82f6;
+            --accent-color: #60a5fa;
+            --text-color: #1f2937;
+            --light-bg: #f3f4f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+        }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        section {
+            padding: 4rem 0;
+        }
+
+        .features {
+            background: var(--light-bg);
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-container {
+            margin: 2rem 0;
+            height: 800px;
+        }
+
+        .game-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+        }
+
+        .cta {
+            background: var(--primary-color);
+            color: white;
+            text-align: center;
+        }
+
+        .rules {
+            background: white;
+        }
+
+        .scoring {
+            background: var(--light-bg);
+        }
+
+        .benefits {
+            background: white;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            section {
+                padding: 2rem 0;
+            }
+        }
     </style>
-  </head>
-  <body>
-    <h1>
-      <span>I'm ready to work,</span><br />
-      Ask me anything.
-    </h1>
-    <img src="https://enzostvs-deepsite.hf.space/arrow.svg" class="arrow" />
-    <script></script>
-  </body>
+</head>
+<body>
+    <section class="hero">
+        <div class="container">
+            <h1>Master English-Chinese Vocabulary Through Interactive Gaming</h1>
+            <p>Enhance your language skills with our engaging word matching game</p>
+        </div>
+    </section>
+
+    <section class="game-container">
+        <div class="container">
+            <iframe src="https://phonecardcgccard.github.io/word-matching-game/" class="game-frame" title="English-Chinese Word Matching Game"></iframe>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>Game Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>Dual Mode Gameplay</h3>
+                    <p>Choose between drag-and-drop or click mode to match words according to your preference.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Progress Tracking</h3>
+                    <p>Monitor your learning progress with our built-in scoring system and mistake tracker.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Custom Word Lists</h3>
+                    <p>Upload your own word lists in Excel or TXT format to practice specific vocabulary.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="rules">
+        <div class="container">
+            <h2>How to Play</h2>   
+如何播放
+            <div class="rules-content">
+                <h3>Game Rules</h3>
+                <ul>
+                    <li>Match English words with their Chinese translations</li>
+                    <li>Choose between drag-and-drop or click mode</li>
+                    <li>Complete matches within the time limit</li>
+                    <li>Track your progress and review mistakes</li>
+                </ul>
+            </div>
+        </div>
+    </section   部分>
+
+    <section   部分 class   类="scoring"   “得分”>
+        <div class   类="container">
+            <h2>Scoring System</h2>   < h2 >评分系统< / h2 >
+            <div class   类="scoring-content">
+                <h3>Points and Rewards</h3>
+                <ul>
+                    <li>+10 points for each correct match</li>
+                    <li>Time bonuses for quick completion</li>
+                    <li>Progress tracking across sessions</li>
+                    <li>Mistake tracking for focused learning</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section   部分 class   类="benefits"   “好处”>
+        <div class   类="container">
+            <h2>Learning Benefits</h2>
+            <div class   类="benefits-content">
+                <h3>Why Play Our Game?</h3>
+                <ul>
+                    <li>Improve vocabulary retention through active recall</li>
+                    <li>Learn at your own pace with adjustable difficulty levels</li>
+                    <li>Track your progress with detailed statistics</li>
+                    <li>Practice with customizable word lists</li>
+                </ul>
+            </div>
+        </div>
+    </section   部分>
+
+    <section   部分 class   类="cta">
+        <div class   类="container">
+            <h2>Start Learning Today</h2>
+            <p>Begin your language learning journey with our interactive word matching game</p>
+        </div>
+    </section>   < / >节
+</body>   身体< / >
 </html>
+  
 
 
 
