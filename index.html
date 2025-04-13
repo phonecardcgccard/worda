@@ -2,53 +2,156 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中英单词连连看</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <title>单词消消乐配对游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .game-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .column {
+            width: 45%;
+            min-height: 500px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .word-item {
+            padding: 12px;
+            margin: 8px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .word-item:hover {
+            background-color: #e0e0e0;
+        }
+        .selected {
+            background-color: #a0d8ef !important;
+        }
+        .stats {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .completed {
+            background-color: #90EE90 !important;
+            opacity: 0.5;
+        }
+    </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-header">
-            <div class="score">得分: <span id="score">0</span></div>
-            <div class="timer" id="timer">90秒</div>
-            <div class="combo" id="combo"></div>
-        </div>
-        
-        <div class="controls">
-            <button id="startBtn">开始游戏</button>
-            <button id="pauseBtn">暂停</button>
-            <button id="soundBtn">🔊</button>
-            <select id="difficultySelect">
-                <option value="easy">简单</option>
-                <option value="normal" selected>普通</option>
-                <option value="hard">困难</option>
-            </select>
-        </div>
-        
-        <div class="word-columns">
-            <div id="englishWords" class="word-column"></div>
-            <canvas id="connectionCanvas"></canvas>
-            <div id="chineseWords" class="word-column"></div>
-        </div>
-        
-        <div class="mistake-panel">
-            <h3>错题本</h3>
-            <div id="mistakeList"></div>
-        </div>
+    <div class="stats">
+        <span>错误次数: <span id="errors">0</span></span>
+        <span style="margin-left: 20px;">耗时: <span id="timer">0</span>秒</span>
     </div>
-    
-    <div id="particlesContainer"></div>
-    
-    <audio id="successSound" src="assets/sounds/success.mp3" preload="auto"></audio>
-    <audio id="errorSound" src="assets/sounds/error.mp3" preload="auto"></audio>
-    
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="assets/js/game.js"></script>
-</body>
-</html>
+    <div class="game-container">
+        <div class="column" id="english-column"></div>
+        <div class="column" id="chinese-column"></div>
+    </div>
 
+    <script>
+        // ==================== 在这里修改单词列表 ====================
+        const wordPairs = [
+            ["Hello", "你好"],
+            ["Goodbye", "再见"],
+            ["Computer", "电脑"],
+            ["Book", "书"],
+            ["Teacher", "老师"],
+            // 在此继续添加更多单词对...
+        ];
+        // =========================================================
+
+        let selectedItems = { english: null, chinese: null };
+        let errorCount = 0;
+        let startTime = Date.now();
+        let timerInterval;
+
+        function initGame() {
+            // 随机排序单词（保持配对关系）
+            const shuffled = wordPairs.sort(() => Math.random() - 0.5);
+            
+            // 创建英文列
+            shuffled.forEach(pair => {
+                const div = document.createElement('div');
+                div.className = 'word-item';
+                div.textContent = pair[0];
+                div.dataset.pair = pair[1];
+                div.onclick = () => selectItem('english', div);
+                document.getElementById('english-column').appendChild(div);
+            });
+
+            // 创建中文列（完全随机）
+            shuffled.map(pair => pair[1])
+                .sort(() => Math.random() - 0.5)
+                .forEach(text => {
+                    const div = document.createElement('div');
+                    div.className = 'word-item';
+                    div.textContent = text;
+                    div.onclick = () => selectItem('chinese', div);
+                    document.getElementById('chinese-column').appendChild(div);
+                });
+
+            // 启动计时器
+            timerInterval = setInterval(() => {
+                document.getElementById('timer').textContent = 
+                    Math.floor((Date.now() - startTime) / 1000);
+            }, 1000);
+        }
+
+        function   函数 selectItem(type, element) {
+            if   如果 (element   元素.classList   班级名册.contains   包含('completed')) return   返回;
+
+            // 清除已选样式
+            document   文档.querySelectorAll('.selected').forEach(item   项 => {
+                item   项.classList   班级名册.remove   删除('selected'   “选择”);
+            }   好);
+
+            // 设置当前选中
+            element   元素.classList   班级名册.add   添加('selected'   “选择”);
+            selectedItems[type   类型] = element   元素;
+
+            // 检查是否配对
+            if   如果 (selectedItems.english   英语 && selectedItems.chinese   中国人) {
+                if   如果 (selectedItems.english   英语.dataset   数据集.pair   一对 === selectedItems.chinese   中国人.textContent) {
+                    // 配对成功
+                    selectedItems.english   英语.classList   班级名册.add   添加('completed');
+                    selectedItems.chinese   中国人.classList   班级名册.add   添加('completed');
+                    checkCompletion();
+                }   好 else   其他 {
+                    // 配对失败
+                    errorCount++;
+                    document   文档.getElementById('errors'   “错误”).textContent = errorCount;
+                    setTimeout(() => {
+                        selectedItems.english   英语.classList   班级名册.remove   删除('selected'   “选择”);
+                        selectedItems.chinese   中国人.classList   班级名册.remove   删除('selected'   “选择”);
+                    }   好, 500);
+                }   好
+                selectedItems = { english   英语: null   零, chinese   中国人: null   零 }   好;
+            }   好
+        }   好
+
+        function   函数 checkCompletion() {
+            const   常量 remaining   剩下的 = document   文档.querySelectorAll('.word-item:not(.completed)'“.word   词-item   项:不(.completed)”);
+            if   如果 (remaining   剩下的.length   长度 === 0) {
+                clearInterval(timerInterval);
+                alert   警报(`游戏完成！\n总耗时: ${document   文档.getElementById('timer').textContent}秒   “定时器”\n错误次数: ${errorCount}   好`);
+            }   好
+        }   好
+
+        // 开始游戏
+        initGame();
+    </script   脚本>
+</body>
+        </html>
         
-  
 
 
 
