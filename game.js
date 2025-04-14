@@ -145,6 +145,66 @@ function handleTouchMove(e) {
     drawConnection();
 }
 
+// 添加视口调整函数
+function adjustViewport() {
+    const gameContainer = document.querySelector('.game-container');
+    const windowHeight = window.innerHeight;
+    const containerHeight = gameContainer.offsetHeight;
+    
+    if (containerHeight > windowHeight) {
+        gameContainer.style.height = `${windowHeight - 40}px`;
+        gameContainer.style.overflow = 'auto';
+    }
+}
+
+// 改进初始化画布函数
+function initCanvas() {
+    const canvas = elements.connectionCanvas;
+    const container = document.querySelector('.word-columns');
+    if (canvas && container) {
+        canvas.width = container.offsetWidth;
+        canvas.height = container.offsetHeight;
+        canvas.style.position = 'absolute';
+        canvas.style.left = '0';
+        canvas.style.top = '0';
+        canvas.style.pointerEvents = 'none';
+    }
+}
+
+// 改进渲染单词卡片函数
+function renderWordCards() {
+    elements.englishWords.innerHTML = '';
+    elements.chineseWords.innerHTML = '';
+    
+    const cardHeight = Math.floor(100 / Math.min(gameState.words.length, 8)) + 'vh';
+    
+    gameState.words.forEach((word, index) => {
+        const englishCard = createWordCard(word.english, 'english', word);
+        const chineseCard = createWordCard(word.chinese, 'chinese', word);
+        
+        englishCard.style.height = cardHeight;
+        chineseCard.style.height = cardHeight;
+        
+        elements.englishWords.appendChild(englishCard);
+        elements.chineseWords.appendChild(chineseCard);
+    });
+}
+
+// 添加窗口大小变化监听
+window.addEventListener('resize', () => {
+    adjustViewport();
+    initCanvas();
+});
+
+// 在初始化游戏时调用视口调整
+function initGame() {
+    // ... 现有代码 ...
+    adjustViewport();
+    initCanvas();
+    renderWordCards();
+    // ... 现有代码 ...
+}
+
 
 
 
