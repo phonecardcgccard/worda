@@ -27,6 +27,30 @@
         .card {
             animation: fadeIn 0.3s ease-out;
             transition: all 0.2s;
+            perspective: 1000px;
+        }
+        
+        .card-inner {
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .card-back {
+            transform: rotateY(180deg);
         }
         
         .card:hover {
@@ -52,6 +76,11 @@
         .progress-bar {
             transition: width 0.3s ease;
         }
+        
+        .card-content {
+            word-break: break-word;
+            padding: 0.5rem;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
@@ -61,10 +90,10 @@
             <p class="text-lg text-indigo-600">中英文单词配对游戏</p>
         </header>
 
-        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
             <!-- Game Controls -->
-            <div class="bg-indigo-700 text-white p-4 flex justify-between items-center">
-                <div class="flex items-center space-x-4">
+            <div class="bg-indigo-700 text-white p-4 flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
                     <button id="newGameBtn" class="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100 transition">
                         <i class="fas fa-redo mr-2"></i>新游戏
                     </button>
@@ -73,6 +102,7 @@
                         <select id="difficulty" class="bg-indigo-600 text-white border border-indigo-500 rounded px-2 py-1">
                             <option value="simple">简单</option>
                             <option value="complex">复杂</option>
+                            <option value="custom">自定义</option>
                         </select>
                     </div>
                 </div>
@@ -93,21 +123,33 @@
                 </div>
             </div>
             
+            <!-- Custom Words Input (hidden by default) -->
+            <div id="customWordsContainer" class="hidden p-4 bg-gray-100">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">输入自定义单词对 (每行一个, 格式: 英文=中文)</label>
+                    <textarea id="customWordsInput" class="w-full p-2 border rounded" rows="5" placeholder="apple=苹果&#10;book=书&#10;cat=猫"></textarea>
+                </div>
+                <button id="saveCustomWords" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                    保存自定义单词
+                </button>
+            </div>
+            
             <!-- Progress Bar -->
             <div class="h-2 bg-gray-200">
                 <div id="progressBar" class="h-full bg-green-500 progress-bar" style="width: 0%"></div>
             </div>
             
             <!-- Game Board -->
-            <div id="gameBoard" class="p-6 grid grid-cols-4 gap-4 min-h-[500px]">
+            <div id="gameBoard" class="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[500px]">
                 <!-- Cards will be generated here -->
             </div>
             
             <!-- Game Messages -->
-            <div id="message" class="hidden absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
-                <div class="bg-white p-8 rounded-xl text-center max-w-md">
+            <div id="message" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+                <div class="bg-white p-8 rounded-xl text-center max-w-md mx-4">
                     <h2 id="messageTitle" class="text-3xl font-bold mb-4"></h2>
                     <p id="messageText" class="text-lg mb-6"></p>
+                    <div id="messageStats" class="mb-4 text-left"></div>
                     <button id="messageBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
                         继续
                     </button>
@@ -117,7 +159,7 @@
     </div>
 
     <script>
-        // Game data
+        // Game data with more words
         const wordPairs = {
             simple: [
                 { english: "apple", chinese: "苹果" },
@@ -139,7 +181,11 @@
                 { english: "queen", chinese: "女王" },
                 { english: "red", chinese: "红色" },
                 { english: "sun", chinese: "太阳" },
-                { english: "tree", chinese: "树" }
+                { english: "tree", chinese: "树" },
+                { english: "water", chinese: "水" },
+                { english: "xylophone", chinese: "木琴" },
+                { english: "yellow", chinese: "黄色" },
+                { english: "zoo", chinese: "动物园" }
             ],
             complex: [
                 { english: "abundance", chinese: "丰富" },
@@ -161,61 +207,77 @@
                 { english: "quintessential", chinese: "典型的" },
                 { english: "resilient", chinese: "有弹性的" },
                 { english: "serendipity", chinese: "意外发现" },
-                { english: "trepidation", chinese: "恐惧" }
-            ]
+                { english: "trepidation", chinese: "恐惧" },
+                { english: "ubiquitous", chinese: "普遍存在的" },
+                { english: "voracious", chinese: "贪婪的" },
+                { english: "wanderlust", chinese: "旅行癖" },
+                { english: "xenophobia", chinese: "仇外心理" },
+                { english: "yonder", chinese: "那边的" },
+                { english: "zealot", chinese: "狂热者" }
+            ],
+            custom: []
         };
 
         // Game state
-        let gameState = {
+        const gameState = {
             selectedCards: [],
             matchedPairs: [],
             score: 0,
-            remainingPairs: 20,
+            remainingPairs: 0,
             timer: 0,
             timerInterval: null,
             currentDifficulty: 'simple',
             firstCard: null,
             secondCard: null,
-            canClick: true
+            canClick: true,
+            gameStartTime: null,
+            moves: 0,
+            wordCount: 20 // Default word count
         };
 
         // DOM elements
-        const gameBoard = document.getElementById('gameBoard');
-        const scoreElement = document.getElementById('score');
-        const remainingElement = document.getElementById('remaining');
-        const timerElement = document.getElementById('timer');
-        const newGameBtn = document.getElementById('newGameBtn');
-        const difficultySelect = document.getElementById('difficulty');
-        const progressBar = document.getElementById('progressBar');
-        const messageElement = document.getElementById('message');
-        const messageTitle = document.getElementById('messageTitle');
-        const messageText = document.getElementById('messageText');
-        const messageBtn = document.getElementById('messageBtn');
+        const elements = {
+            gameBoard: document.getElementById('gameBoard'),
+            scoreElement: document.getElementById('score'),
+            remainingElement: document.getElementById('remaining'),
+            timerElement: document.getElementById('timer'),
+            newGameBtn: document.getElementById('newGameBtn'),
+            difficultySelect: document.getElementById('difficulty'),
+            progressBar: document.getElementById('progressBar'),
+            messageElement: document.getElementById('message'),
+            messageTitle: document.getElementById('messageTitle'),
+            messageText: document.getElementById('messageText'),
+            messageStats: document.getElementById('messageStats'),
+            messageBtn: document.getElementById('messageBtn'),
+            customWordsContainer: document.getElementById('customWordsContainer'),
+            customWordsInput: document.getElementById('customWordsInput'),
+            saveCustomWords: document.getElementById('saveCustomWords')
+        };
 
         // Initialize game
         function initGame() {
             // Reset game state
-            gameState = {
+            Object.assign(gameState, {
                 selectedCards: [],
                 matchedPairs: [],
                 score: 0,
-                remainingPairs: 20,
+                remainingPairs: gameState.wordCount,
                 timer: 0,
-                timerInterval: null,
-                currentDifficulty: difficultySelect.value,
                 firstCard: null,
                 secondCard: null,
-                canClick: true
-            };
+                canClick: true,
+                gameStartTime: null,
+                moves: 0
+            });
 
             // Update UI
-            scoreElement.textContent = gameState.score;
-            remainingElement.textContent = gameState.remainingPairs * 2;
+            elements.scoreElement.textContent = gameState.score;
+            elements.remainingElement.textContent = gameState.remainingPairs * 2;
             updateTimerDisplay();
-            progressBar.style.width = '0%';
+            elements.progressBar.style.width = '0%';
 
             // Clear game board
-            gameBoard.innerHTML = '';
+            elements.gameBoard.innerHTML = '';
 
             // Start timer
             startTimer();
@@ -229,11 +291,24 @@
             // Get words based on difficulty
             const words = [...wordPairs[gameState.currentDifficulty]];
             
+            // Select random words based on wordCount
+            const selectedWords = shuffleArray(words).slice(0, gameState.wordCount);
+            
             // Duplicate and shuffle words to create pairs
             let cards = [];
-            words.forEach(word => {
-                cards.push({ type: 'english', content: word.english, pairId: word.english });
-                cards.push({ type: 'chinese', content: word.chinese, pairId: word.english });
+            selectedWords.forEach(word => {
+                cards.push({ 
+                    type: 'english', 
+                    content: word.english, 
+                    pairId: word.english,
+                    flipped: false
+                });
+                cards.push({ 
+                    type: 'chinese', 
+                    content: word.chinese, 
+                    pairId: word.english,
+                    flipped: false
+                });
             });
 
             // Shuffle cards
@@ -242,14 +317,24 @@
             // Create card elements
             cards.forEach((card, index) => {
                 const cardElement = document.createElement('div');
-                cardElement.className = `card bg-white rounded-lg shadow-md p-4 flex items-center justify-center cursor-pointer text-center text-lg font-medium h-24 ${card.type === 'english' ? 'text-blue-700' : 'text-red-600'}`;
+                cardElement.className = `card bg-white rounded-lg shadow-md p-1 cursor-pointer h-24 relative`;
                 cardElement.dataset.index = index;
                 cardElement.dataset.pairId = card.pairId;
                 cardElement.dataset.type = card.type;
-                cardElement.innerHTML = `<div>${card.content}</div>`;
+                
+                cardElement.innerHTML = `
+                    <div class="card-inner w-full h-full">
+                        <div class="card-front bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <div class="card-content text-indigo-800 font-bold">?</div>
+                        </div>
+                        <div class="card-back ${card.type === 'english' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'} rounded-lg">
+                            <div class="card-content font-medium">${card.content}</div>
+                        </div>
+                    </div>
+                `;
                 
                 cardElement.addEventListener('click', () => handleCardClick(cardElement));
-                gameBoard.appendChild(cardElement);
+                elements.gameBoard.appendChild(cardElement);
             });
         }
 
@@ -258,21 +343,29 @@
             // If we can't click or card is already matched or selected, return
             if (!gameState.canClick || 
                 cardElement.classList.contains('matched') || 
-                gameState.selectedCards.includes(cardElement)) {
+                gameState.selectedCards.includes(cardElement) ||
+                cardElement.classList.contains('flipped')) {
                 return;
             }
+
+            // Flip the card
+            cardElement.classList.add('flipped');
+            
+            // Record game start time on first move
+            if (gameState.moves === 0) {
+                gameState.gameStartTime = performance.now();
+            }
+            gameState.moves++;
 
             // If it's the first card selected
             if (gameState.selectedCards.length === 0) {
                 gameState.firstCard = cardElement;
                 gameState.selectedCards.push(cardElement);
-                cardElement.classList.add('selected');
             } 
             // If it's the second card selected
             else if (gameState.selectedCards.length === 1 && !gameState.selectedCards.includes(cardElement)) {
                 gameState.secondCard = cardElement;
                 gameState.selectedCards.push(cardElement);
-                cardElement.classList.add('selected');
                 gameState.canClick = false;
                 
                 // Check if they match
@@ -289,8 +382,6 @@
                 firstCard.dataset.type !== secondCard.dataset.type) {
                 
                 // Add matched class
-                firstCard.classList.remove('selected');
-                secondCard.classList.remove('selected');
                 firstCard.classList.add('matched');
                 secondCard.classList.add('matched');
                 
@@ -300,9 +391,9 @@
                 gameState.remainingPairs--;
                 
                 // Update UI
-                scoreElement.textContent = gameState.score;
-                remainingElement.textContent = gameState.remainingPairs * 2;
-                progressBar.style.width = `${((40 - (gameState.remainingPairs * 2)) / 40) * 100}%`;
+                elements.scoreElement.textContent = gameState.score;
+                elements.remainingElement.textContent = gameState.remainingPairs * 2;
+                elements.progressBar.style.width = `${((gameState.wordCount * 2 - (gameState.remainingPairs * 2)) / (gameState.wordCount * 2)) * 100}%`;
                 
                 // Check if game is over
                 if (gameState.remainingPairs === 0) {
@@ -311,19 +402,22 @@
             } 
             // If they don't match
             else {
-                firstCard.classList.remove('selected');
-                secondCard.classList.remove('selected');
-                firstCard.classList.add('wrong');
-                secondCard.classList.add('wrong');
-                
+                // Flip cards back
                 setTimeout(() => {
-                    firstCard.classList.remove('wrong');
-                    secondCard.classList.remove('wrong');
+                    firstCard.classList.remove('flipped');
+                    secondCard.classList.remove('flipped');
+                    firstCard.classList.add('wrong');
+                    secondCard.classList.add('wrong');
+                    
+                    setTimeout(() => {
+                        firstCard.classList.remove('wrong');
+                        secondCard.classList.remove('wrong');
+                    }, 500);
                 }, 500);
                 
                 // Penalty for wrong match
                 gameState.score = Math.max(0, gameState.score - 2);
-                scoreElement.textContent = gameState.score;
+                elements.scoreElement.textContent = gameState.score;
             }
             
             // Reset selection
@@ -347,25 +441,44 @@
         function updateTimerDisplay() {
             const minutes = Math.floor(gameState.timer / 60);
             const seconds = gameState.timer % 60;
-            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            elements.timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
 
         // End game
         function endGame(isWin) {
             clearInterval(gameState.timerInterval);
             
+            const endTime = performance.now();
+            const timeTaken = gameState.gameStartTime ? ((endTime - gameState.gameStartTime) / 1000).toFixed(1) : 0;
+            
             if (isWin) {
-                showMessage('恭喜!', `你成功配对了所有单词!<br>得分: ${gameState.score}<br>用时: ${formatTime(gameState.timer)}`, 'fa-trophy');
+                showMessage(
+                    '恭喜!', 
+                    `你成功配对了所有单词!`,
+                    'fa-trophy',
+                    `得分: ${gameState.score}<br>
+                     用时: ${formatTime(gameState.timer)}<br>
+                     移动次数: ${gameState.moves}<br>
+                     准确率: ${Math.round((gameState.wordCount / gameState.moves) * 100)}%`
+                );
             } else {
-                showMessage('游戏结束', `你配对了 ${20 - gameState.remainingPairs} 对单词<br>得分: ${gameState.score}`, 'fa-redo');
+                showMessage(
+                    '游戏结束', 
+                    `你配对了 ${gameState.wordCount - gameState.remainingPairs} 对单词`,
+                    'fa-redo',
+                    `得分: ${gameState.score}<br>
+                     用时: ${formatTime(gameState.timer)}<br>
+                     移动次数: ${gameState.moves}`
+                );
             }
         }
 
         // Show message
-        function showMessage(title, text, iconClass) {
-            messageTitle.innerHTML = `<i class="fas ${iconClass} mr-2"></i>${title}`;
-            messageText.innerHTML = text;
-            messageElement.classList.remove('hidden');
+        function showMessage(title, text, iconClass, stats = '') {
+            elements.messageTitle.innerHTML = `<i class="fas ${iconClass} mr-2"></i>${title}`;
+            elements.messageText.innerHTML = text;
+            elements.messageStats.innerHTML = stats;
+            elements.messageElement.classList.remove('hidden');
         }
 
         // Format time
@@ -385,23 +498,52 @@
             return newArray;
         }
 
+        // Handle custom words
+        function handleCustomWords() {
+            const input = elements.customWordsInput.value.trim();
+            if (!input) return;
+            
+            const lines = input.split('\n');
+            wordPairs.custom = [];
+            
+            lines.forEach(line => {
+                const parts = line.split('=');
+                if (parts.length === 2) {
+                    wordPairs.custom.push({
+                        english: parts[0].trim(),
+                        chinese: parts[1].trim()
+                    });
+                }
+            });
+            
+            if (wordPairs.custom.length > 0) {
+                gameState.wordCount = Math.min(20, wordPairs.custom.length);
+                initGame();
+                elements.customWordsContainer.classList.add('hidden');
+            }
+        }
+
         // Event listeners
-        newGameBtn.addEventListener('click', initGame);
-        messageBtn.addEventListener('click', () => {
-            messageElement.classList.add('hidden');
-            initGame();
+        elements.newGameBtn.addEventListener('click', initGame);
+        elements.messageBtn.addEventListener('click', () => {
+            elements.messageElement.classList.add('hidden');
         });
+        elements.difficultySelect.addEventListener('change', (e) => {
+            if (e.target.value === 'custom') {
+                elements.customWordsContainer.classList.remove('hidden');
+            } else {
+                elements.customWordsContainer.classList.add('hidden');
+                gameState.currentDifficulty = e.target.value;
+                gameState.wordCount = 20;
+                initGame();
+            }
+        });
+        elements.saveCustomWords.addEventListener('click', handleCustomWords);
 
         // Start the game
         initGame();
     </script>
 </body>
 </html>
-
-        
-
-
-
-
 
 
