@@ -1,122 +1,150 @@
-// 游戏配置
+// 添加游戏配置对象
 const gameConfig = {
     maxWords: 20,
-    bonusTimePoints: 100,
-    penaltyPoints: -5,
-    particleCount: 30,
-    defaultWordList: [
-        { english: "apple", chinese: "苹果" },
-        { english: "book", chinese: "书" },
-        { english: "cat", chinese: "猫" },
-        { english: "dog", chinese: "狗" },
-        { english: "elephant", chinese: "大象" }
-    ],
     difficulties: {
         easy: { timeLimit: 120000, scoreMultiplier: 1 },
         normal: { timeLimit: 90000, scoreMultiplier: 1.5 },
         hard: { timeLimit: 60000, scoreMultiplier: 2 }
+    },
+    bonusPoints: {
+        combo: 5,
+        timeBonus: 10
     }
 };
 
-// 游戏状态
+// 改进游戏状态管理
 const gameState = {
-    words: [],
-    selectedWord: null,
-    matchedPairs: [],
-    score: 0,
+    // ... 现有状态 ...
     combo: 0,
     maxCombo: 0,
-    mistakes: {},
-    gameMode: 'drag',
-    isDragging: false,
-    dragStartPos: { x: 0, y: 0 },
-    dragEndPos: { x: 0, y: 0 },
-    connections: [],
-    difficulty: 'normal',
-    timeLimit: 0,
-    timer: null,
-    soundEnabled: true,
-    isPaused: false
-};
-
-// DOM 元素引用
-const elements = {
-    gameContainer: document.getElementById('gameContainer'),
-    englishWords: document.getElementById('englishWords'),
-    chineseWords: document.getElementById('chineseWords'),
-    connectionCanvas: document.getElementById('connectionCanvas'),
-    scoreElement: document.getElementById('score'),
-    comboElement: document.getElementById('combo'),
-    timerElement: document.getElementById('timer'),
-    mistakeList: document.getElementById('mistakeList')
-};
-
-// 初始化游戏
-function initGame() {
-    loadGameProgress();
-    setupEventListeners();
-    initializeCanvas();
-    renderUI();
-    startGame();
-}
-
-// 游戏主循环
-function gameLoop() {
-    if (!gameState.isPaused) {
-        updateGame();
-        renderGame();
+    lastMatchTime: 0,
+    statistics: {
+        totalGames: 0,
+        bestScore: 0,
+        averageTime: 0
     }
-    requestAnimationFrame(gameLoop);
+};
+
+// 添加游戏统计功能
+function updateStatistics() {
+    const stats = gameState.statistics;
+    stats.totalGames++;
+    stats.bestScore = Math.max(stats.bestScore, gameState.score);
+    localStorage.setItem('gameStats', JSON.stringify(stats));
 }
 
-// 更新游戏状态
-function updateGame() {
-    updateTimer();
-    updateScore();
-    checkGameEnd();
-}
-
-// 渲染游戏
-function renderGame() {
-    renderWordCards();
-    drawConnections();
+// 改进计分系统
+function updateScore(points) {
+    if (points > 0) {
+        gameState.combo++;
+        const comboBonus = Math.floor(gameState.combo / 3) * gameConfig.bonusPoints.combo;
+        points += comboBonus;
+        
+        const now = Date.now();
+        if (gameState.lastMatchTime && (now - gameState.lastMatchTime < 2000)) {
+            points += gameConfig.bonusPoints.timeBonus;
+        }
+        gameState.lastMatchTime = now;
+    } else {
+        gameState.combo = 0;
+    }
+    
+    gameState.score += points;
     updateUI();
 }
-
-// 开始新游戏
-function startGame() {
-    resetGameState();
-    loadWords();
-    startTimer();
-    gameLoop();
+// 添加防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
 }
 
-// 重置游戏状态
-function resetGameState() {
-    Object.assign(gameState, {
-        score: 0,
-        combo: 0,
-        maxCombo: 0,
-        matchedPairs: [],
-        connections: [],
-        isPaused: false
-    });
-}
-
-// 加载单词
-function loadWords() {
-    if (gameState.words.length === 0) {
-        gameState.words = [...gameConfig.defaultWordList];
+// 优化画布渲染
+function drawConnection() {
+    const canvas = elements.connectionCanvas;
+    const ctx = canvas.getContext('2d');
+    
+    // 使用 requestAnimationFrame 优化动画
+    if (!gameState.animationFrame) {
+        gameState.animationFrame = requestAnimationFrame(() => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawConnections();
+            gameState.animationFrame = null;
+        });
     }
-    shuffleArray(gameState.words);
 }
 
-// 渲染UI
-function renderUI() {
-    elements.scoreElement.textContent = `得分: ${gameState.score}`;
-    elements.comboElement.textContent = gameState.combo > 1 ? `${gameState.combo}连击!` : '';
-    updateMistakeList();
+// 优化事件监听
+window.addEventListener('resize', debounce(initCanvas, 250));
+
+// 添加进度保存功能
+function saveProgress() {
+    const progress = {
+        score: gameState.score,
+        matchedPairs: gameState.matchedPairs,
+        mistakes: gameState.mistakes,
+        timeRemaining: gameState.timeLimit
+    };
+    localStorage.setItem('gameProgress', JSON.stringify(progress));
 }
 
-// ... 其他现有函数保持不变 ...
+// 添加游戏暂停功能
+function togglePause() {
+    gameState.isPaused = !gameState.isPaused;
+    if (gameState.isPaused) {
+        clearInterval(gameState.timer);
+        showPauseOverlay();
+    } else {
+        startTimer();
+        hidePauseOverlay();
+    }
+}
+
+// 改进错误提示
+function showFriendlyError(message, duration = 3000) {
+    const errorContainer = document.createElement('div');
+    errorContainer.className = 'error-toast';
+    errorContainer.textContent = message;
+    document.body.appendChild(errorContainer);
+    
+    setTimeout(() => {
+        errorContainer.classList.add('fade-out');
+        setTimeout(() => errorContainer.remove(), 300);
+    }, duration);
+}
+
+// 添加触摸事件支持
+function setupTouchEvents(card) {
+    card.addEventListener('touchstart', handleTouchStart, { passive: false });
+    card.addEventListener('touchmove', handleTouchMove, { passive: false });
+    card.addEventListener('touchend', handleTouchEnd);
+}
+
+// 处理触摸开始
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    gameState.dragStartPos = {
+        x: touch.clientX,
+        y: touch.clientY
+    };
+}
+
+// 处理触摸移动
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!gameState.isDragging) return;
+    
+    const touch = e.touches[0];
+    gameState.dragEndPos = {
+        x: touch.clientX,
+        y: touch.clientY
+    };
+    drawConnection();
+}
+
+
+
 
