@@ -85,3 +85,76 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+
+
+
+
+
+
+.game-container {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 1rem;
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.word-columns {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    position: relative;
+    margin: 1rem 0;
+    overflow: hidden;
+}
+
+.word-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    padding: 0.5rem;
+    max-height: calc(100vh - 200px);
+}
+
+.word-card {
+    flex-shrink: 0;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    margin: 0.25rem 0;
+    border-radius: 0.5rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+@media (max-width: 768px) {
+    .word-columns {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .word-column {
+        max-height: calc(50vh - 100px);
+    }
+    
+    .word-card {
+        min-height: 40px;
+        padding: 0.75rem;
+    }
+}
+
+@media (max-height: 600px) {
+    .word-column {
+        max-height: calc(100vh - 150px);
+    }
+}
+
+
