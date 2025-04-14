@@ -1,156 +1,403 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>单词消消乐配对游戏</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Match - 中英文单词配对游戏</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
         }
-        .game-container {
-            display: flex;
-            justify-content: space-between;
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
-        .column {
-            width: 45%;
-            min-height: 500px;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
         }
-        .word-item {
-            padding: 12px;
-            margin: 8px;
-            background-color: #f0f0f0;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
+        
+        .card {
+            animation: fadeIn 0.3s ease-out;
+            transition: all 0.2s;
         }
-        .word-item:hover {
-            background-color: #e0e0e0;
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         }
+        
         .selected {
-            background-color: #a0d8ef !important;
+            transform: scale(0.95);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
         }
-        .stats {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 18px;
+        
+        .matched {
+            animation: pulse 0.5s;
+            opacity: 0.6;
+            transform: scale(0.98);
         }
-        .completed {
-            background-color: #90EE90 !important;
-            opacity: 0.5;
+        
+        .wrong {
+            animation: shake 0.4s;
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
         }
     </style>
 </head>
-<body>
-    <div class="stats">
-        <span>错误次数: <span id="errors">0</span></span>
-        <span style="margin-left: 20px;">耗时: <span id="timer">0</span>秒</span>
-    </div>
-    <div class="game-container">
-        <div class="column" id="english-column"></div>
-        <div class="column" id="chinese-column"></div>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-indigo-800 mb-2">Word Match</h1>
+            <p class="text-lg text-indigo-600">中英文单词配对游戏</p>
+        </header>
+
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- Game Controls -->
+            <div class="bg-indigo-700 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <button id="newGameBtn" class="bg-white text-indigo-700 px-4 py-2 rounded-lg font-medium hover:bg-indigo-100 transition">
+                        <i class="fas fa-redo mr-2"></i>新游戏
+                    </button>
+                    <div class="flex items-center">
+                        <label class="mr-2">难度:</label>
+                        <select id="difficulty" class="bg-indigo-600 text-white border border-indigo-500 rounded px-2 py-1">
+                            <option value="simple">简单</option>
+                            <option value="complex">复杂</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <div class="text-sm opacity-80">得分</div>
+                        <div id="score" class="text-2xl font-bold">0</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm opacity-80">剩余</div>
+                        <div id="remaining" class="text-2xl font-bold">40</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-sm opacity-80">时间</div>
+                        <div id="timer" class="text-2xl font-bold">00:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="h-2 bg-gray-200">
+                <div id="progressBar" class="h-full bg-green-500 progress-bar" style="width: 0%"></div>
+            </div>
+            
+            <!-- Game Board -->
+            <div id="gameBoard" class="p-6 grid grid-cols-4 gap-4 min-h-[500px]">
+                <!-- Cards will be generated here -->
+            </div>
+            
+            <!-- Game Messages -->
+            <div id="message" class="hidden absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+                <div class="bg-white p-8 rounded-xl text-center max-w-md">
+                    <h2 id="messageTitle" class="text-3xl font-bold mb-4"></h2>
+                    <p id="messageText" class="text-lg mb-6"></p>
+                    <button id="messageBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">
+                        继续
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // ==================== 在这里修改单词列表 ====================
-        const wordPairs = [
-            ["Hello", "你好"],
-            ["Goodbye", "再见"],
-            ["Computer", "电脑"],
-            ["Book", "书"],
-            ["Teacher", "老师"],
-            // 在此继续添加更多单词对...
-        ];
-        // =========================================================
+        // Game data
+        const wordPairs = {
+            simple: [
+                { english: "apple", chinese: "苹果" },
+                { english: "book", chinese: "书" },
+                { english: "cat", chinese: "猫" },
+                { english: "dog", chinese: "狗" },
+                { english: "egg", chinese: "鸡蛋" },
+                { english: "fish", chinese: "鱼" },
+                { english: "girl", chinese: "女孩" },
+                { english: "house", chinese: "房子" },
+                { english: "ice", chinese: "冰" },
+                { english: "juice", chinese: "果汁" },
+                { english: "king", chinese: "国王" },
+                { english: "love", chinese: "爱" },
+                { english: "moon", chinese: "月亮" },
+                { english: "name", chinese: "名字" },
+                { english: "open", chinese: "打开" },
+                { english: "pen", chinese: "钢笔" },
+                { english: "queen", chinese: "女王" },
+                { english: "red", chinese: "红色" },
+                { english: "sun", chinese: "太阳" },
+                { english: "tree", chinese: "树" }
+            ],
+            complex: [
+                { english: "abundance", chinese: "丰富" },
+                { english: "benevolent", chinese: "仁慈的" },
+                { english: "consequence", chinese: "后果" },
+                { english: "diligent", chinese: "勤奋的" },
+                { english: "eloquent", chinese: "雄辩的" },
+                { english: "flourish", chinese: "繁荣" },
+                { english: "gregarious", chinese: "社交的" },
+                { english: "hierarchy", chinese: "等级制度" },
+                { english: "impeccable", chinese: "无瑕疵的" },
+                { english: "juxtaposition", chinese: "并列" },
+                { english: "kaleidoscope", chinese: "万花筒" },
+                { english: "luminous", chinese: "发光的" },
+                { english: "meticulous", chinese: "一丝不苟的" },
+                { english: "nostalgia", chinese: "怀旧" },
+                { english: "obfuscate", chinese: "使困惑" },
+                { english: "paradox", chinese: "悖论" },
+                { english: "quintessential", chinese: "典型的" },
+                { english: "resilient", chinese: "有弹性的" },
+                { english: "serendipity", chinese: "意外发现" },
+                { english: "trepidation", chinese: "恐惧" }
+            ]
+        };
 
-        let selectedItems = { english: null, chinese: null };
-        let errorCount = 0;
-        let startTime = Date.now();
-        let timerInterval;
+        // Game state
+        let gameState = {
+            selectedCards: [],
+            matchedPairs: [],
+            score: 0,
+            remainingPairs: 20,
+            timer: 0,
+            timerInterval: null,
+            currentDifficulty: 'simple',
+            firstCard: null,
+            secondCard: null,
+            canClick: true
+        };
 
+        // DOM elements
+        const gameBoard = document.getElementById('gameBoard');
+        const scoreElement = document.getElementById('score');
+        const remainingElement = document.getElementById('remaining');
+        const timerElement = document.getElementById('timer');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const difficultySelect = document.getElementById('difficulty');
+        const progressBar = document.getElementById('progressBar');
+        const messageElement = document.getElementById('message');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const messageBtn = document.getElementById('messageBtn');
+
+        // Initialize game
         function initGame() {
-            // 随机排序单词（保持配对关系）
-            const shuffled = wordPairs.sort(() => Math.random() - 0.5);
+            // Reset game state
+            gameState = {
+                selectedCards: [],
+                matchedPairs: [],
+                score: 0,
+                remainingPairs: 20,
+                timer: 0,
+                timerInterval: null,
+                currentDifficulty: difficultySelect.value,
+                firstCard: null,
+                secondCard: null,
+                canClick: true
+            };
+
+            // Update UI
+            scoreElement.textContent = gameState.score;
+            remainingElement.textContent = gameState.remainingPairs * 2;
+            updateTimerDisplay();
+            progressBar.style.width = '0%';
+
+            // Clear game board
+            gameBoard.innerHTML = '';
+
+            // Start timer
+            startTimer();
+
+            // Prepare cards
+            prepareCards();
+        }
+
+        // Prepare cards for the game
+        function prepareCards() {
+            // Get words based on difficulty
+            const words = [...wordPairs[gameState.currentDifficulty]];
             
-            // 创建英文列
-            shuffled.forEach(pair => {
-                const div = document.createElement('div');
-                div.className = 'word-item';
-                div.textContent = pair[0];
-                div.dataset.pair = pair[1];
-                div.onclick = () => selectItem('english', div);
-                document.getElementById('english-column').appendChild(div);
+            // Duplicate and shuffle words to create pairs
+            let cards = [];
+            words.forEach(word => {
+                cards.push({ type: 'english', content: word.english, pairId: word.english });
+                cards.push({ type: 'chinese', content: word.chinese, pairId: word.english });
             });
 
-            // 创建中文列（完全随机）
-            shuffled.map(pair => pair[1])
-                .sort(() => Math.random() - 0.5)
-                .forEach(text => {
-                    const div = document.createElement('div');
-                    div.className = 'word-item';
-                    div.textContent = text;
-                    div.onclick = () => selectItem('chinese', div);
-                    document.getElementById('chinese-column').appendChild(div);
-                });
+            // Shuffle cards
+            cards = shuffleArray(cards);
 
-            // 启动计时器
-            timerInterval = setInterval(() => {
-                document.getElementById('timer').textContent = 
-                    Math.floor((Date.now() - startTime) / 1000);
+            // Create card elements
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = `card bg-white rounded-lg shadow-md p-4 flex items-center justify-center cursor-pointer text-center text-lg font-medium h-24 ${card.type === 'english' ? 'text-blue-700' : 'text-red-600'}`;
+                cardElement.dataset.index = index;
+                cardElement.dataset.pairId = card.pairId;
+                cardElement.dataset.type = card.type;
+                cardElement.innerHTML = `<div>${card.content}</div>`;
+                
+                cardElement.addEventListener('click', () => handleCardClick(cardElement));
+                gameBoard.appendChild(cardElement);
+            });
+        }
+
+        // Handle card click
+        function handleCardClick(cardElement) {
+            // If we can't click or card is already matched or selected, return
+            if (!gameState.canClick || 
+                cardElement.classList.contains('matched') || 
+                gameState.selectedCards.includes(cardElement)) {
+                return;
+            }
+
+            // If it's the first card selected
+            if (gameState.selectedCards.length === 0) {
+                gameState.firstCard = cardElement;
+                gameState.selectedCards.push(cardElement);
+                cardElement.classList.add('selected');
+            } 
+            // If it's the second card selected
+            else if (gameState.selectedCards.length === 1 && !gameState.selectedCards.includes(cardElement)) {
+                gameState.secondCard = cardElement;
+                gameState.selectedCards.push(cardElement);
+                cardElement.classList.add('selected');
+                gameState.canClick = false;
+                
+                // Check if they match
+                setTimeout(() => checkForMatch(), 500);
+            }
+        }
+
+        // Check if selected cards match
+        function checkForMatch() {
+            const [firstCard, secondCard] = gameState.selectedCards;
+            
+            // If they match
+            if (firstCard.dataset.pairId === secondCard.dataset.pairId && 
+                firstCard.dataset.type !== secondCard.dataset.type) {
+                
+                // Add matched class
+                firstCard.classList.remove('selected');
+                secondCard.classList.remove('selected');
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                
+                // Update game state
+                gameState.matchedPairs.push(firstCard.dataset.pairId);
+                gameState.score += 10;
+                gameState.remainingPairs--;
+                
+                // Update UI
+                scoreElement.textContent = gameState.score;
+                remainingElement.textContent = gameState.remainingPairs * 2;
+                progressBar.style.width = `${((40 - (gameState.remainingPairs * 2)) / 40) * 100}%`;
+                
+                // Check if game is over
+                if (gameState.remainingPairs === 0) {
+                    endGame(true);
+                }
+            } 
+            // If they don't match
+            else {
+                firstCard.classList.remove('selected');
+                secondCard.classList.remove('selected');
+                firstCard.classList.add('wrong');
+                secondCard.classList.add('wrong');
+                
+                setTimeout(() => {
+                    firstCard.classList.remove('wrong');
+                    secondCard.classList.remove('wrong');
+                }, 500);
+                
+                // Penalty for wrong match
+                gameState.score = Math.max(0, gameState.score - 2);
+                scoreElement.textContent = gameState.score;
+            }
+            
+            // Reset selection
+            gameState.selectedCards = [];
+            gameState.firstCard = null;
+            gameState.secondCard = null;
+            gameState.canClick = true;
+        }
+
+        // Start timer
+        function startTimer() {
+            clearInterval(gameState.timerInterval);
+            gameState.timer = 0;
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer++;
+                updateTimerDisplay();
             }, 1000);
         }
 
-        function   函数 selectItem(type, element) {
-            if   如果 (element   元素.classList   班级名册.contains   包含('completed')) return   返回;
+        // Update timer display
+        function updateTimerDisplay() {
+            const minutes = Math.floor(gameState.timer / 60);
+            const seconds = gameState.timer % 60;
+            timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
 
-            // 清除已选样式
-            document   文档.querySelectorAll('.selected').forEach(item   项 => {
-                item   项.classList   班级名册.remove   删除('selected'   “选择”);
-            }   好);
+        // End game
+        function endGame(isWin) {
+            clearInterval(gameState.timerInterval);
+            
+            if (isWin) {
+                showMessage('恭喜!', `你成功配对了所有单词!<br>得分: ${gameState.score}<br>用时: ${formatTime(gameState.timer)}`, 'fa-trophy');
+            } else {
+                showMessage('游戏结束', `你配对了 ${20 - gameState.remainingPairs} 对单词<br>得分: ${gameState.score}`, 'fa-redo');
+            }
+        }
 
-            // 设置当前选中
-            element   元素.classList   班级名册.add   添加('selected'   “选择”);
-            selectedItems[type   类型] = element   元素;
+        // Show message
+        function showMessage(title, text, iconClass) {
+            messageTitle.innerHTML = `<i class="fas ${iconClass} mr-2"></i>${title}`;
+            messageText.innerHTML = text;
+            messageElement.classList.remove('hidden');
+        }
 
-            // 检查是否配对
-            if   如果 (selectedItems.english   英语 && selectedItems.chinese   中国人) {
-                if   如果 (selectedItems.english   英语.dataset   数据集.pair   一对 === selectedItems.chinese   中国人.textContent) {
-                    // 配对成功
-                    selectedItems.english   英语.classList   班级名册.add   添加('completed');
-                    selectedItems.chinese   中国人.classList   班级名册.add   添加('completed');
-                    checkCompletion();
-                }   好 else   其他 {
-                    // 配对失败
-                    errorCount++;
-                    document   文档.getElementById('errors'   “错误”).textContent = errorCount;
-                    setTimeout(() => {
-                        selectedItems.english   英语.classList   班级名册.remove   删除('selected'   “选择”);
-                        selectedItems.chinese   中国人.classList   班级名册.remove   删除('selected'   “选择”);
-                    }   好, 500);
-                }   好
-                selectedItems = { english   英语: null   零, chinese   中国人: null   零 }   好;
-            }   好
-        }   好
+        // Format time
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}分${secs}秒`;
+        }
 
-        function   函数 checkCompletion() {
-            const   常量 remaining   剩下的 = document   文档.querySelectorAll('.word-item:not(.completed)'“.word   词-item   项:不(.completed)”);
-            if   如果 (remaining   剩下的.length   长度 === 0) {
-                clearInterval(timerInterval);
-                alert   警报(`游戏完成！\n总耗时: ${document   文档.getElementById('timer').textContent}秒   “定时器”\n错误次数: ${errorCount}   好`);
-            }   好
-        }   好
+        // Utility function to shuffle array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
 
-        // 开始游戏
+        // Event listeners
+        newGameBtn.addEventListener('click', initGame);
+        messageBtn.addEventListener('click', () => {
+            messageElement.classList.add('hidden');
+            initGame();
+        });
+
+        // Start the game
         initGame();
-    </script   脚本>
+    </script>
 </body>
-        </html>
+</html>
+
         
 
 
